@@ -1,7 +1,7 @@
 //! Play and record from audio and MIDI I/O devices.
 
 use {
-    crate::{juce, Result, JUCE},
+    crate::{juce, Result, JUCE_COUNTER},
     slotmap::SlotMap,
     std::{
         marker::PhantomData,
@@ -228,9 +228,24 @@ pub struct AudioDeviceManager<'juce> {
     _juce: PhantomData<&'juce ()>,
 }
 
+impl<'juce> Drop for AudioDeviceManager<'juce> {
+    fn drop(&mut self) {
+        let counter_before = JUCE_COUNTER.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+        if counter_before == 1 {
+            juce::shutdown_juce();
+        }
+    }
+}
+
 impl<'juce> AudioDeviceManager<'juce> {
     /// Create a new [`AudioDeviceManager`].
-    pub fn new(_juce: &'juce JUCE) -> Self {
+    pub fn new() -> Self {
+        let counter_before = JUCE_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        if counter_before == 0 {
+            juce::initialise_juce();
+            #[cfg(target_os = "macos")]
+            juce::initialise_ns_application();
+        }
         Self {
             device_manager: juce::create_audio_device_manager(),
             callbacks: SlotMap::with_key(),

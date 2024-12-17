@@ -17,7 +17,7 @@ use {
         },
         BoxedAudioIODevice, BoxedAudioIODeviceCallback, BoxedAudioIODeviceType,
     },
-    std::sync::{Mutex, MutexGuard},
+    std::sync::atomic::AtomicUsize,
 };
 
 /// Returns the version of the JUCE library.
@@ -25,44 +25,7 @@ pub fn juce_version() -> String {
     juce::version()
 }
 
-/// An RAII guard for JUCE. Required for certain JUCE classes.
-#[must_use]
-pub struct JUCE<'juce> {
-    _guard: MutexGuard<'juce, ()>,
-}
-
-static JUCE_INSTANCE: Mutex<()> = Mutex::new(());
-
-impl<'juce> JUCE<'juce> {
-    /// Initialise JUCE. Panics if JUCE is already initialised.
-    pub fn initialise() -> Self {
-        Self::new(JUCE_INSTANCE.try_lock().expect("JUCE already initialised"))
-    }
-
-    pub fn shutdown() {
-        juce::shutdown_juce();
-    }
-
-    #[doc(hidden)]
-    pub fn wait_to_initialise_in_test_context() -> Self {
-        Self::new(JUCE_INSTANCE.lock().unwrap())
-    }
-
-    fn new(guard: MutexGuard<'juce, ()>) -> Self {
-        juce::initialise_juce();
-
-        #[cfg(target_os = "macos")]
-        juce::initialise_ns_application();
-
-        Self { _guard: guard }
-    }
-}
-
-impl Drop for JUCE<'_> {
-    fn drop(&mut self) {
-        juce::shutdown_juce();
-    }
-}
+static JUCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 pub type Exception = cxx::Exception;
 pub type Result<T> = std::result::Result<T, Exception>;

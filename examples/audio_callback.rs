@@ -4,7 +4,7 @@ use {
             AudioDeviceManager, AudioIODevice, AudioIODeviceCallback, InputAudioSampleBuffer,
             OutputAudioSampleBuffer,
         },
-        Result, JUCE,
+        Result,
     },
     std::{iter::successors, thread::sleep, time::Duration},
 };
@@ -77,8 +77,7 @@ impl AudioIODeviceCallback for AudioCallback {
 }
 
 fn main() -> Result<()> {
-    let juce = JUCE::initialise();
-    let mut device_manager = AudioDeviceManager::new(&juce);
+    let mut device_manager = AudioDeviceManager::new();
     device_manager.initialise(0, 2)?;
 
     let handle = device_manager.add_audio_callback(AudioCallback::default());
