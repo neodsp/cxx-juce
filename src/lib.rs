@@ -39,6 +39,10 @@ impl<'juce> JUCE<'juce> {
         Self::new(JUCE_INSTANCE.try_lock().expect("JUCE already initialised"))
     }
 
+    pub fn shutdown() {
+        juce::shutdown_juce();
+    }
+
     #[doc(hidden)]
     pub fn wait_to_initialise_in_test_context() -> Self {
         Self::new(JUCE_INSTANCE.lock().unwrap())
